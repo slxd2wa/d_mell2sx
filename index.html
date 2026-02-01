@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>M-E-L-L-O-W | Elite Hub</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;500;700&family=Space+Grotesk:wght@300;500;700&display=swap');
+
+        :root {
+            --bg: #020202;
+            --glass: rgba(255, 255, 255, 0.02);
+            --border: rgba(255, 255, 255, 0.08);
+            --anime-cyan: #00f2ff;
+            --success: #2ed573;
+            --error: #ff4757;
+            --warning: #ffa502;
+            --discord: #5865F2;
+            --snow-count: 80;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html,body { height: 100%; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        #snow-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .bg-glow { position: fixed; inset: 0; background: radial-gradient(circle at 50% -10%, rgba(0, 242, 255, 0.08) 0%, transparent 60%); z-index: -1; }
+
+        .nav-stack { position: fixed; left: 30px; top: 30px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .nav-btn {
+            background: var(--glass); border: 1px solid var(--border); padding: 12px 25px; border-radius: 12px;
+            backdrop-filter: blur(20px); font-size: 0.6rem; letter-spacing: 3px; font-weight: 700; color: white;
+            text-decoration: none; text-align: center; transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1); cursor: pointer; min-width: 135px;
+        }
+        .nav-btn:hover { border-color: var(--anime-cyan); transform: translateX(8px); background: rgba(0, 242, 255, 0.05); }
+
+        .side-panel {
+            position: fixed; top: 0; width: 420px; height: 100vh;
+            background: rgba(3, 3, 3, 0.98); backdrop-filter: blur(50px);
+            z-index: 6000; transition: 0.7s cubic-bezier(0.19, 1, 0.22, 1); padding: 80px 40px;
+        }
+        .side-panel.left { left: -450px; border-right: 1px solid var(--border); }
+        .side-panel.left.active { left: 0; }
+        .side-panel.right { right: -450px; border-left: 1px solid var(--border); }
+        .side-panel.right.active { right: 0; }
+
+        .close-btn {
+            position: absolute; top: 30px; right: 30px; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--glass); border: 1px solid var(--border); border-radius: 50%;
+            cursor: pointer; transition: 0.3s; font-size: 1.2rem; color: white;
+        }
+        .close-btn:hover { background: var(--error); border-color: var(--error); transform: rotate(90deg); }
+
+        .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
+        .profile-img { width: 80px; height: 80px; border-radius: 20px; border: 2px solid var(--anime-cyan); object-fit: cover; background: #111; }
+        .bio-links { display: flex; flex-direction: column; gap: 12px; }
+        .bio-link-card {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px; border-radius: 15px; background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border); text-decoration: none; color: white; transition: 0.3s; cursor: pointer;
+        }
+        .bio-link-card:hover { border-color: var(--anime-cyan); background: rgba(0, 242, 255, 0.05); }
+
+        .full-overlay {
+            display: none; position: fixed; inset: 0; z-index: 9000; background: var(--bg);
+            flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        .overlay-card { max-width: 550px; padding: 60px; border-radius: 40px; border: 1px solid var(--border); background: var(--glass); backdrop-filter: blur(20px); }
+        .overlay-title { font-family: 'Space Grotesk'; font-size: 1.6rem; letter-spacing: 8px; margin-bottom: 15px; text-transform: uppercase; }
+
+        .header { margin-top: 100px; text-align: center; position: relative; z-index: 1; }
+        .title { font-size: 3.5rem; letter-spacing: 25px; font-weight: 100; text-transform: uppercase; }
+        .last-updated { font-size: 0.55rem; letter-spacing: 2px; opacity: 0.5; margin-top: 5px; color: var(--anime-cyan); text-transform: uppercase; }
+        
+        .grid-container { width: 100%; max-width: 1200px; margin: 50px auto; padding: 0 20px; position: relative; z-index: 1; }
+        #script-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+
+        .card {
+            position: relative; overflow: hidden; background: var(--glass); border: 1px solid var(--border);
+            padding: 25px; border-radius: 20px; display: flex; flex-direction: column;
+            transition: 0.45s cubic-bezier(0.19, 1, 0.22, 1); animation: fadeIn 0.5s forwards;
+            --corner-size: 22px;
+            background-image: radial-gradient(circle at left top, transparent, transparent), radial-gradient(circle at right top, transparent, transparent), radial-gradient(circle at left bottom, transparent, transparent), radial-gradient(circle at right bottom, transparent, transparent);
+            background-repeat: no-repeat; background-position: left top, right top, left bottom, right bottom;
+            background-size: var(--corner-size) var(--corner-size);
+        }
+
+        .card:hover {
+            transform: translateY(-8px); border-color: var(--anime-cyan);
+            box-shadow: 0 10px 40px rgba(0,242,255,0.06);
+            background-image: 
+                radial-gradient(circle at left top, rgba(0,242,255,0.92) 0%, transparent 55%),
+                radial-gradient(circle at right top, rgba(0,242,255,0.92) 0%, transparent 55%),
+                radial-gradient(circle at left bottom, rgba(0,242,255,0.92) 0%, transparent 55%),
+                radial-gradient(circle at right bottom, rgba(0,242,255,0.92) 0%, transparent 55%);
+        }
+
+        .btn-copy {
+            width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--border);
+            background: transparent; color: white; font-family: 'Space Grotesk'; font-weight: 700;
+            font-size: 0.65rem; letter-spacing: 2px; cursor: pointer; transition: 0.3s;
+        }
+        .btn-copy.success { background: var(--success) !important; color: black !important; border-color: var(--success) !important; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<canvas id="snow-canvas"></canvas>
+<div class="bg-glow"></div>
+
+<div class="nav-stack">
+    <div class="nav-btn" onclick="togglePanel('bioPanel')">BIO</div>
+    <div class="nav-btn" onclick="togglePanel('logPanel')">LOGS</div>
+    <a href="#" class="nav-btn discord-link-dynamic" target="_blank">DISCORD</a>
+</div>
+
+<div id="maintenance-screen" class="full-overlay">
+    <div class="overlay-card" style="border-top: 4px solid var(--anime-cyan);">
+        <h1 class="overlay-title" style="color:var(--anime-cyan);">THE WEBSITE IS UPDATING<br>COME BACK LATER</h1>
+    </div>
+</div>
+
+<div id="error-screen" class="full-overlay">
+    <div class="overlay-card" style="border-top: 4px solid var(--error);">
+        <h1 class="overlay-title" style="color:var(--error);">THE WEBSITE HAS A BUG<br>FIXING IT</h1>
+    </div>
+</div>
+
+<div class="side-panel left" id="bioPanel">
+    <div class="close-btn" onclick="togglePanel('bioPanel')">×</div>
+    <div class="profile-header">
+        <img src="" id="dynamic-pfp" class="profile-img" alt="profile">
+        <div><h2 style="font-family:'Space Grotesk';">Mellowfemboy</h2><p style="color:var(--anime-cyan); font-size:0.6rem; letter-spacing:2px;">DEVELOPER</p></div>
+    </div>
+    <div class="bio-links">
+        <div class="bio-link-card" onclick="copyValue(this, 'mellowfemboy')">
+            <span>COPY USERNAME</span><span style="font-size:0.6rem; opacity:0.4;">@mellowfemboy</span>
+        </div>
+        <a href="https://discord.com/users/1357108171591909458" target="_blank" class="bio-link-card">
+            <span>VIEW PROFILE</span><span>→</span>
+        </a>
+        <a href="#" class="bio-link-card discord-link-dynamic" target="_blank">
+            <span>DISCORD SERVER</span><span>→</span>
+        </a>
+    </div>
+</div>
+
+<div class="side-panel right" id="logPanel">
+    <div class="close-btn" onclick="togglePanel('logPanel')">×</div>
+    <h2 style="font-family:'Space Grotesk'; margin-bottom:30px;">SYSTEM LOGS</h2>
+    <div id="log-content"></div>
+</div>
+
+<div class="header">
+    <h1 class="title">M-E-L-L-O-W</h1>
+    <p id="update-timestamp" class="last-updated">NICE LAST UPDATED : LOADING...</p>
+    <p id="sync-status" style="font-size:0.5rem; letter-spacing:5px; opacity:0.3; margin-top:10px;">CONNECTING...</p>
+</div>
+
+<div class="grid-container">
+    <div id="script-grid"><p style="text-align:center; opacity:0.2;">Searching for scripts...</p></div>
+</div>
+
+<script>
+    function togglePanel(id) { document.getElementById(id).classList.toggle('active'); }
+
+    function copyValue(el, text) {
+        navigator.clipboard.writeText(text);
+        const original = el.innerHTML;
+        el.innerHTML = "<span>COPIED!</span>";
+        setTimeout(() => el.innerHTML = original, 1500);
+    }
+
+    const GIST_URL = 'https://gist.githubusercontent.com/slxd2wa/983ab76d2d0e54e72d36f064749bc13b/raw/2a2c31e69389e7b7e695338225cfbb7e2e63a9c1/gistfile1.txt';
+    let lastContent = "";
+
+    async function sync() {
+        try {
+            const response = await fetch(`${GIST_URL}?cb=${new Date().getTime()}`);
+            if (!response.ok) throw new Error();
+            const raw = await response.text();
+
+            if (!raw || raw === lastContent) return;
+            lastContent = raw;
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString() + " | " + now.toLocaleTimeString();
+            document.getElementById('update-timestamp').innerText = "NICE LAST UPDATED : " + timeStr;
+            document.getElementById('sync-status').innerText = "LIVE SYNC ACTIVE";
+
+            const isUpdating = raw.includes('updateing(true)');
+            const isUp = raw.includes('is_up(true)');
+            document.getElementById('maintenance-screen').style.display = isUpdating ? 'flex' : 'none';
+            document.getElementById('error-screen').style.display = (!isUp && !isUpdating) ? 'flex' : 'none';
+
+            // Extract Profile Image
+            const pfpMatch = raw.match(/profile\((.*?)\)/);
+            if (pfpMatch) document.getElementById('dynamic-pfp').src = pfpMatch[1].trim();
+
+            const discMatch = raw.match(/invite_link\((.*?)\)/);
+            if (discMatch) document.querySelectorAll('.discord-link-dynamic').forEach(el => el.href = discMatch[1].trim());
+
+            const blocks = raw.split('[').filter(b => b.toLowerCase().includes('name :'));
+            let gridHtml = '';
+            let logHtml = '';
+
+            blocks.forEach((block) => {
+                const nameMatch = block.match(/Name\s*:\s*(.*)/i);
+                if(!nameMatch) return;
+                
+                const name = nameMatch[1].trim();
+                const desc = (block.match(/desc\s*:\s*(.*)/i) || ["", "No description."])[1].trim();
+                const script = (block.match(/Script\s*:\s*(.*)/i) || ["", ""])[1].trim();
+                const bug = block.toLowerCase().includes('bug : true');
+                const work = block.toLowerCase().includes('working_on_it : true');
+                const disabled = bug || work;
+
+                logHtml += `<div style="padding:15px 0; border-bottom:1px solid var(--border); font-size:0.7rem;">
+                    <span style="color:${disabled ? 'var(--error)' : 'var(--success)'};">● ${disabled ? 'OFFLINE' : 'LIVE'}</span> ${name}
+                </div>`;
+
+                gridHtml += `
+                    <div class="card">
+                        <div style="margin-bottom:10px; height:15px; display:flex; gap:10px;">
+                            ${bug ? '<span style="color:var(--error); font-size:0.5rem; font-weight:700;">BUG</span>' : ''}
+                            ${work ? '<span style="color:var(--warning); font-size:0.5rem; font-weight:700;">DEV</span>' : ''}
+                        </div>
+                        <h3 style="font-family:'Space Grotesk'; font-size:1rem; margin-bottom:8px;">${name}</h3>
+                        <p style="font-size:0.75rem; opacity:0.5; margin-bottom:20px;">${desc}</p>
+                        <button class="btn-copy" ${disabled ? 'disabled' : ''} onclick="copyScript(this, \`${script}\`)">
+                            ${disabled ? 'MAINTENANCE' : 'COPY LOADSTRING'}
+                        </button>
+                    </div>`;
+            });
+
+            document.getElementById('script-grid').innerHTML = gridHtml || '<p style="text-align:center; opacity:0.2;">No scripts found.</p>';
+            document.getElementById('log-content').innerHTML = logHtml;
+        } catch (e) {
+            document.getElementById('sync-status').innerText = "RECONNECTING...";
+        }
+    }
+
+    function copyScript(btn, text) {
+        navigator.clipboard.writeText(text);
+        const original = btn.innerText;
+        btn.innerText = "COPIED!";
+        btn.classList.add('success');
+        setTimeout(() => {
+            btn.innerText = original;
+            btn.classList.remove('success');
+        }, 1200);
+    }
+
+    sync();
+    setInterval(sync, 5000);
+</script>
+
+<script>
+    /* Snow Logic remains same */
+    (function () {
+        const canvas = document.getElementById('snow-canvas');
+        const ctx = canvas.getContext('2d');
+        let w = canvas.width = innerWidth;
+        let h = canvas.height = innerHeight;
+        let flakes = [];
+        const SNOW_COUNT = 80;
+
+        function rand(min, max) { return Math.random() * (max - min) + min; }
+
+        function createFlakes() {
+            flakes = [];
+            for (let i = 0; i < SNOW_COUNT; i++) {
+                flakes.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    r: rand(0.6, 3.5),
+                    d: rand(0.5, 1.8),
+                    vx: rand(-0.5, 0.5),
+                    vy: rand(0.3, 1.2),
+                    opacity: rand(0.2, 0.95)
+                });
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+            for (let i = 0; i < flakes.length; i++) {
+                const f = flakes[i];
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(255,255,255,${f.opacity})`;
+                ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function update() {
+            for (let i = 0; i < flakes.length; i++) {
+                const f = flakes[i];
+                f.y += f.vy;
+                f.x += f.vx;
+                if (f.y > h) f.y = -10;
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        createFlakes();
+        loop();
+        window.addEventListener('resize', () => { w = canvas.width = innerWidth; h = canvas.height = innerHeight; });
+    })();
+</script>
+
+</body>
+</html>
